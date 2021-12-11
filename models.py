@@ -1,16 +1,18 @@
 import torch
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.metrics.functional import accuracy
 import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision import transforms, datasets
-import torch.nn.functional as F
 
 
-class RNN(LightningModule):
+class RNN_layer(nn.Module):
     
     def __init__(self, x_dim, h_dim):
+        """
+        Layer of a standard Recurrent Neural Network
+        Expetced as outputs two torch.tensor of shapes  (num_examples, Tx, x_dim) and (num_examples, Tx, h_dim)
+        where Tx is the length of the temporal sequenxe and num_examples is the mini_batch lenght
+        Parameters:
+        x_dim = dimension of feature vector
+        h_dim = dimension of hidden state vector
+        """
     
         super().__init__()
         
@@ -44,9 +46,17 @@ class RNN(LightningModule):
 
 
 
-class LSTM(LightningModule):
+class LSTM_layer(nn.Module):
 
     def __init__(self, x_dim, h_dim):
+        """
+        Layer of a Long Short Term memory
+        Expetced as outputs two torch.tensor of shapes  (num_examples, T, x_dim) and (num_examples, T, h_dim)
+        where T is the length of the temporal sequence and num_examples is the mini_batch length
+        Parameters:
+        x_dim = dimension of feature vector
+        h_dim = dimension of hidden state vector
+        """
         
         super().__init__()
         
@@ -71,10 +81,17 @@ class LSTM(LightningModule):
         self.sigmoid = nn.Sigmoid()
         self.tanh = nn.Tanh()
       
-    def forward(self, x, h, C):
+    def forward(self, x, a, c):
+        """
+        Forward pass of the LSTM
+        Parameters:
+        x = input torch.tensor of shape (num_examples, T, x_dim)
+        a = hidden state torch.tensor of shape (num_examples, T. h_dim)
+        c = cell state of shape (num_examples, T. h_dim)
+        """
         
         # Input concatenation
-        in_cat = torch.cat((x,h), dim=-1)
+        in_cat = torch.cat((a,x), dim=-1)
         
         # Forget gate
         f = self.sigmoid(self.forget_gate(in_cat))
@@ -83,13 +100,13 @@ class LSTM(LightningModule):
         i = self.sigmoid(self.input_gate(in_cat))
         
         # Cell update
-        C = f*C + i*self.tanh(self.cell_update(in_cat))
+        c = f*c + i*self.tanh(self.cell_update(in_cat))
       
         # Output gate
         o = self.sigmoid(self.out(in_cat))
-        h = o*self.tanh(C)
+        a = o*self.tanh(c)
         
-        return o, h , C 
+        return o, a , c
       
       
       
